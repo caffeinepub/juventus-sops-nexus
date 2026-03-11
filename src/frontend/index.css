@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 95%;
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 95%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 271 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 47% 14%;
+    --secondary-foreground: 210 40% 90%;
+    --muted: 222 47% 14%;
+    --muted-foreground: 210 20% 60%;
+    --accent: 45 90% 60%;
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 47% 18%;
+    --input: 222 47% 14%;
+    --ring: 271 70% 55%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+.glow-purple {
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 0 40px rgba(168, 85, 247, 0.4);
+}
+
+.glow-gold {
+  text-shadow: 0 0 20px rgba(245, 200, 66, 0.8);
+}
+
+.hero-gradient {
+  background: radial-gradient(ellipse at 50% 50%, rgba(139, 47, 201, 0.2) 0%, rgba(10, 15, 46, 0.95) 70%);
+}
+
+.card-glow:hover {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3), 0 4px 24px rgba(0,0,0,0.4);
+  border-color: rgba(168, 85, 247, 0.5);
+}
