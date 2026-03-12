@@ -93,6 +93,24 @@ actor {
     createdAt : Time.Time;
   };
 
+  type PaymentMethod = {
+    id : Nat;
+    methodName : Text;
+    accountNumber : Text;
+    accountName : Text;
+    bankName : Text;
+    instructions : Text;
+  };
+
+  type PaymentConfirmation = {
+    id : Nat;
+    orderId : Nat;
+    user : Principal;
+    receiptNote : Text;
+    contactEmail : Text;
+    createdAt : Time.Time;
+  };
+
   public type UserProfile = {
     name : Text;
   };
@@ -104,13 +122,23 @@ actor {
     joinedAt : Time.Time;
   };
 
-  let products = Map.empty<Nat, Product>();
-  let services = Map.empty<Nat, Service>();
-  let carts = Map.empty<Principal, List.List<CartItem>>();
-  let orders = Map.empty<Nat, OrderType>();
-  let inquiries = Map.empty<Nat, ServiceInquiry>();
-  let userProfiles = Map.empty<Principal, UserProfile>();
-  let userJoinedAt = Map.empty<Principal, Time.Time>();
+  // All maps are stable so data persists across upgrades
+  stable let products = Map.empty<Nat, Product>();
+  stable let services = Map.empty<Nat, Service>();
+  stable let carts = Map.empty<Principal, List.List<CartItem>>();
+  stable let orders = Map.empty<Nat, OrderType>();
+  stable let inquiries = Map.empty<Nat, ServiceInquiry>();
+  stable let userProfiles = Map.empty<Principal, UserProfile>();
+  stable let userJoinedAt = Map.empty<Principal, Time.Time>();
+  stable let paymentMethods = Map.empty<Nat, PaymentMethod>();
+  stable let paymentConfirmations = Map.empty<Nat, PaymentConfirmation>();
+
+  stable var nextProductId : Nat = 1;
+  stable var nextServiceId : Nat = 1;
+  stable var nextOrderId : Nat = 1;
+  stable var nextInquiryId : Nat = 1;
+  stable var nextPaymentMethodId : Nat = 1;
+  stable var nextPaymentConfirmationId : Nat = 1;
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -120,13 +148,10 @@ actor {
       case (null) {
         userJoinedAt.add(user, Time.now());
       };
-      case (?_) {
-        // Already tracked
-      };
+      case (?_) {};
     };
   };
 
-  // Called by the frontend on every login to ensure the user is registered
   public shared ({ caller }) func registerUser() : async () {
     if (caller.isAnonymous()) {
       Runtime.trap("Anonymous callers cannot register");
@@ -160,7 +185,10 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
-    products.add(product.id, product);
+    let id = nextProductId;
+    nextProductId += 1;
+    let newProduct : Product = { product with id };
+    products.add(id, newProduct);
   };
 
   public shared ({ caller }) func updateProduct(id : Nat, updatedProduct : Product) : async () {
@@ -197,7 +225,10 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
-    services.add(service.id, service);
+    let id = nextServiceId;
+    nextServiceId += 1;
+    let newService : Service = { service with id };
+    services.add(id, newService);
   };
 
   public shared ({ caller }) func updateService(id : Nat, updatedService : Service) : async () {
@@ -225,7 +256,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can manage cart");
     };
-    ensureUserTracked(caller : Principal);
+    ensureUserTracked(caller);
     let product = switch (products.get(productId)) {
       case (null) { Runtime.trap("Product not found") };
       case (?p) { p };
@@ -284,7 +315,7 @@ actor {
     cart.toArray().sort();
   };
 
-  public shared ({ caller }) func placeOrder() : async () {
+  public shared ({ caller }) func placeOrder() : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can place orders");
     };
@@ -292,8 +323,9 @@ actor {
     let cart = getCartInternal(caller);
     if (cart.size() == 0) { Runtime.trap("Cart is empty") };
 
-    let dotN = orders.size();
-    let id = dotN + 1;
+    let id = nextOrderId;
+    nextOrderId += 1;
+
     let totalAmount = cart.foldLeft(
       0,
       func(acc, item) { acc + (item.product.price * item.quantity.toNat()) },
@@ -310,6 +342,7 @@ actor {
 
     orders.add(id, newOrder);
     carts.add(caller, List.empty<CartItem>());
+    id;
   };
 
   public query ({ caller }) func getOrders() : async [OrderType] {
@@ -345,8 +378,8 @@ actor {
       Runtime.trap("Unauthorized: Only users can submit inquiries");
     };
     ensureUserTracked(caller);
-    let dotN = inquiries.size();
-    let id = dotN + 1;
+    let id = nextInquiryId;
+    nextInquiryId += 1;
     let newInquiry : ServiceInquiry = {
       id;
       user = caller;
@@ -363,6 +396,62 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view inquiries");
     };
     inquiries.values().toArray();
+  };
+
+  // ---- Payment Methods ----
+
+  public shared ({ caller }) func addPaymentMethod(method : PaymentMethod) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can manage payment methods");
+    };
+    let pmId = nextPaymentMethodId;
+    nextPaymentMethodId += 1;
+    let newMethod : PaymentMethod = { method with id = pmId };
+    paymentMethods.add(pmId, newMethod);
+  };
+
+  public shared ({ caller }) func updatePaymentMethod(id : Nat, method : PaymentMethod) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can manage payment methods");
+    };
+    paymentMethods.add(id, method);
+  };
+
+  public shared ({ caller }) func removePaymentMethod(id : Nat) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can manage payment methods");
+    };
+    paymentMethods.remove(id);
+  };
+
+  public query func getPaymentMethods() : async [PaymentMethod] {
+    paymentMethods.values().toArray();
+  };
+
+  // ---- Payment Confirmations ----
+
+  public shared ({ caller }) func submitPaymentConfirmation(orderId : Nat, receiptNote : Text, contactEmail : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can submit payment confirmations");
+    };
+    let id = nextPaymentConfirmationId;
+    nextPaymentConfirmationId += 1;
+    let conf : PaymentConfirmation = {
+      id;
+      orderId;
+      user = caller;
+      receiptNote;
+      contactEmail;
+      createdAt = Time.now();
+    };
+    paymentConfirmations.add(id, conf);
+  };
+
+  public query ({ caller }) func getPaymentConfirmations() : async [PaymentConfirmation] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view payment confirmations");
+    };
+    paymentConfirmations.values().toArray();
   };
 
   public query ({ caller }) func getUsers() : async [UserRecord] {
@@ -403,7 +492,7 @@ actor {
           case (?p) { ?p.name };
         };
         let joinedAt = switch (userJoinedAt.get(user)) {
-          case (null) { Time.now() }; // Fallback for legacy users
+          case (null) { Time.now() };
           case (?timestamp) { timestamp };
         };
 

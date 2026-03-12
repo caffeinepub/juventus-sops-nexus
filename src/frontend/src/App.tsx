@@ -11,7 +11,9 @@ import AdminPage from "./pages/AdminPage";
 import CartPage from "./pages/CartPage";
 import HomePage from "./pages/HomePage";
 import OrdersPage from "./pages/OrdersPage";
+import PaymentPage from "./pages/PaymentPage";
 import ProductsPage from "./pages/ProductsPage";
+import ServiceRequestPage from "./pages/ServiceRequestPage";
 import ServicesPage from "./pages/ServicesPage";
 
 const rootRoute = createRootRoute({
@@ -48,6 +50,20 @@ const servicesRoute = createRoute({
   component: ServicesPage,
 });
 
+const serviceRequestRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/service-request",
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { serviceName?: string; serviceId?: bigint } => ({
+    serviceName: (search.serviceName as string | undefined) ?? "",
+    serviceId: search.serviceId
+      ? BigInt(search.serviceId as string)
+      : undefined,
+  }),
+  component: ServiceRequestPage,
+});
+
 const cartRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/cart",
@@ -66,13 +82,24 @@ const adminRoute = createRoute({
   component: AdminPage,
 });
 
+export const paymentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/payment",
+  validateSearch: (search: Record<string, unknown>): { orderId?: number } => ({
+    orderId: search.orderId ? Number(search.orderId) : undefined,
+  }),
+  component: PaymentPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   productsRoute,
   servicesRoute,
+  serviceRequestRoute,
   cartRoute,
   ordersRoute,
   adminRoute,
+  paymentRoute,
 ]);
 
 const router = createRouter({ routeTree });

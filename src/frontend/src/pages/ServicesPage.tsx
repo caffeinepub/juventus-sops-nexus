@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   Bot,
@@ -9,23 +9,12 @@ import {
   Store,
   TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import type { Service } from "../backend.d";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter } from "../components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "../components/ui/dialog";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
 import { Skeleton } from "../components/ui/skeleton";
-import { Textarea } from "../components/ui/textarea";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -49,11 +38,8 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 
 export default function ServicesPage() {
   const search = useSearch({ from: "/services" });
-  const navigate = useNavigate({ from: "/services" });
+  const navigate = useNavigate();
   const activeCategory = search.category || "All";
-  const [inquireService, setInquireService] = useState<Service | null>(null);
-  const [message, setMessage] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
   const { actor } = useActor();
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
@@ -64,24 +50,21 @@ export default function ServicesPage() {
     enabled: !!actor,
   });
 
-  const inquiryMutation = useMutation({
-    mutationFn: async () => {
-      if (!actor || !inquireService) throw new Error("Not connected");
-      await actor.submitInquiry(inquireService.id, message, contactEmail);
-    },
-    onSuccess: () => {
-      toast.success("Inquiry submitted! We'll get back to you soon.");
-      setInquireService(null);
-      setMessage("");
-      setContactEmail("");
-    },
-    onError: () => toast.error("Failed to submit inquiry"),
-  });
-
   const filteredServices =
     activeCategory === "All"
       ? services
       : services.filter((s) => s.category === activeCategory);
+
+  const handleRequestService = (service: Service) => {
+    if (!isAuthenticated) {
+      toast.info("Please sign in to request a service");
+      return;
+    }
+    navigate({
+      to: "/service-request",
+      search: { serviceName: service.name, serviceId: service.id },
+    });
+  };
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -102,9 +85,9 @@ export default function ServicesPage() {
               key={cat}
               onClick={() => {
                 if (cat === "All") {
-                  navigate({ search: {} });
+                  navigate({ to: "/services", search: {} });
                 } else {
-                  navigate({ search: { category: cat } });
+                  navigate({ to: "/services", search: { category: cat } });
                 }
               }}
               className={`px-3 py-1.5 rounded-full text-sm transition-all ${
@@ -168,16 +151,10 @@ export default function ServicesPage() {
                     <Button
                       size="sm"
                       className="bg-accent text-background hover:bg-accent/80"
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          toast.info("Please sign in to inquire");
-                          return;
-                        }
-                        setInquireService(service);
-                      }}
-                      data-ocid={`services.inquire.button.${i + 1}`}
+                      onClick={() => handleRequestService(service)}
+                      data-ocid={`services.request.button.${i + 1}`}
                     >
-                      Inquire
+                      Request Service
                     </Button>
                   </CardFooter>
                 </Card>
@@ -186,64 +163,6 @@ export default function ServicesPage() {
           </div>
         )}
       </div>
-
-      {/* Inquiry Dialog */}
-      <Dialog
-        open={!!inquireService}
-        onOpenChange={(open) => !open && setInquireService(null)}
-      >
-        <DialogContent data-ocid="inquiry.dialog">
-          <DialogHeader>
-            <DialogTitle>Inquire about {inquireService?.name}</DialogTitle>
-            <DialogDescription>
-              Tell us more about your needs and we'll get back to you.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="inq-email">Contact Email</Label>
-              <Input
-                id="inq-email"
-                type="email"
-                placeholder="your@email.com"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                data-ocid="inquiry.email.input"
-              />
-            </div>
-            <div>
-              <Label htmlFor="inq-message">Message</Label>
-              <Textarea
-                id="inq-message"
-                placeholder="Describe what you need..."
-                rows={4}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                data-ocid="inquiry.message.textarea"
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setInquireService(null)}
-                data-ocid="inquiry.cancel.button"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => inquiryMutation.mutate()}
-                disabled={
-                  !message || !contactEmail || inquiryMutation.isPending
-                }
-                className="bg-primary hover:bg-primary/80"
-                data-ocid="inquiry.submit.button"
-              >
-                {inquiryMutation.isPending ? "Sending..." : "Submit Inquiry"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

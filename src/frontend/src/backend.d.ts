@@ -56,6 +56,22 @@ export interface UserRecord {
 export interface UserProfile {
     name: string;
 }
+export interface PaymentMethod {
+    id: bigint;
+    methodName: string;
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    instructions: string;
+}
+export interface PaymentConfirmation {
+    id: bigint;
+    orderId: bigint;
+    user: Principal;
+    receiptNote: string;
+    contactEmail: string;
+    createdAt: Time;
+}
 export enum Status {
     cancelled = "cancelled",
     pending = "pending",
@@ -69,6 +85,7 @@ export enum UserRole {
 }
 export interface backendInterface {
     addProduct(product: Product): Promise<void>;
+    addPaymentMethod(method: PaymentMethod): Promise<void>;
     addService(service: Service): Promise<void>;
     addToCart(productId: bigint, quantity: number): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
@@ -78,20 +95,25 @@ export interface backendInterface {
     getCart(): Promise<Array<CartItem>>;
     getInquiries(): Promise<Array<ServiceInquiry>>;
     getOrders(): Promise<Array<OrderType>>;
+    getPaymentConfirmations(): Promise<Array<PaymentConfirmation>>;
+    getPaymentMethods(): Promise<Array<PaymentMethod>>;
     getProducts(category: string | null): Promise<Array<Product>>;
     getServices(): Promise<Array<Service>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUsers(): Promise<Array<UserRecord>>;
     isCallerAdmin(): Promise<boolean>;
-    placeOrder(): Promise<void>;
+    placeOrder(): Promise<bigint>;
     registerUser(): Promise<void>;
     removeFromCart(productId: bigint): Promise<void>;
+    removePaymentMethod(id: bigint): Promise<void>;
     removeProduct(id: bigint): Promise<void>;
     removeService(id: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     submitInquiry(serviceId: bigint, message: string, contactEmail: string): Promise<void>;
+    submitPaymentConfirmation(orderId: bigint, receiptNote: string, contactEmail: string): Promise<void>;
     updateCartItem(productId: bigint, quantity: number): Promise<void>;
     updateOrderStatus(orderId: bigint, status: Status): Promise<void>;
+    updatePaymentMethod(id: bigint, method: PaymentMethod): Promise<void>;
     updateProduct(id: bigint, updatedProduct: Product): Promise<void>;
     updateService(id: bigint, updatedService: Service): Promise<void>;
 }

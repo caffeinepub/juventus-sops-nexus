@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { ArrowRight, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { CartItem } from "../backend.d";
@@ -13,6 +13,7 @@ export default function CartPage() {
   const { identity, login } = useInternetIdentity();
   const { actor } = useActor();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
 
   const { data: cartItems = [], isLoading } = useQuery<CartItem[]>({
@@ -37,12 +38,16 @@ export default function CartPage() {
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error();
-      await actor.placeOrder();
+      const result = await (actor as any).placeOrder();
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Order placed successfully!");
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      const orderId =
+        result !== undefined && result !== null ? Number(result) : undefined;
+      router.navigate({ to: "/payment", search: { orderId } });
     },
     onError: () => toast.error("Failed to place order"),
   });

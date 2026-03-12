@@ -1,38 +1,22 @@
 # Juventus Sops Nexus
 
 ## Current State
-New project — no existing code.
+Backend maps for products, services, carts, orders, inquiries, paymentMethods, and paymentConfirmations are declared with plain `let`, making them non-stable. They reset to empty on every canister upgrade/redeploy. Only the ID counters (nextProductId, nextServiceId, nextPaymentMethodId) are stable, so counters increment but the stored data is wiped.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Full hybrid marketplace and tech platform webstore for Juventus Sops brand
-- Homepage with hero, shop categories, why choose us, featured products/services, mission, CTA, footer sections
-- Digital Products catalog: AI Prompt Packs, Health Tech Content, eBooks & White Papers, Digital Courses, Health Tips & Educational Content, Ghostwritten Materials, Visual & Multimedia Assets, Kids Storybooks
-- Digital Services catalog: Graphics & Web Design, CAC & SCUML Registration, Chatbot Development, Mini WebStore Creation, Social Media Growth, Token Creation & Minting
-- User authentication (sign up / sign in)
-- Shopping cart with add/remove/checkout flow
-- Admin panel to manage products and services (add, edit, delete items per category)
-- Sample placeholder products pre-seeded in each category for admin to update
-- Footer with social links (Instagram, WhatsApp, LinkedIn, X/Twitter) and contact email
-- Brand colors: Deep Blue, Neon Purple, Light Gold
+- Nothing new
 
 ### Modify
-- N/A (new project)
+- Change all persistent data maps from `let` to `stable var` so they survive upgrades
+- Also change `userProfiles`, `userJoinedAt`, `carts`, `orders`, `inquiries` to stable
+- Add missing `nextOrderId` and `nextInquiryId` stable counters (currently uses map size which is fragile)
 
 ### Remove
-- N/A
+- Nothing
 
 ## Implementation Plan
-1. Select authorization and blob-storage components
-2. Generate Motoko backend with: user auth, product/service CRUD (by category), cart management, order placement
-3. Build React frontend:
-   - Public homepage with all 7 sections
-   - Products page with category filter
-   - Services page
-   - Cart sidebar/page
-   - Auth modal (sign up / sign in)
-   - Admin dashboard (product/service management per category)
-   - Footer with social links and contact info
-4. Seed sample products for each category
-5. Deploy
+1. Declare all Map variables as `stable var` in main.mo
+2. Add stable nextOrderId and nextInquiryId counters
+3. Use those counters when creating orders and inquiries
