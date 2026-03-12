@@ -47,6 +47,12 @@ export interface CartItem {
     quantity: number;
     product: Product;
 }
+export interface UserRecord {
+    principal: Principal;
+    joinedAt: Time;
+    role: UserRole;
+    profileName?: string;
+}
 export interface UserProfile {
     name: string;
 }
@@ -75,8 +81,10 @@ export interface backendInterface {
     getProducts(category: string | null): Promise<Array<Product>>;
     getServices(): Promise<Array<Service>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getUsers(): Promise<Array<UserRecord>>;
     isCallerAdmin(): Promise<boolean>;
     placeOrder(): Promise<void>;
+    registerUser(): Promise<void>;
     removeFromCart(productId: bigint): Promise<void>;
     removeProduct(id: bigint): Promise<void>;
     removeService(id: bigint): Promise<void>;

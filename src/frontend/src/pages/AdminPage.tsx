@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { Pencil, Plus, ShieldAlert, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { OrderType, Product, Service, ServiceInquiry } from "../backend.d";
-import { Status } from "../backend.d";
+import type {
+  OrderType,
+  Product,
+  Service,
+  ServiceInquiry,
+  UserRecord,
+} from "../backend.d";
+import { Status, UserRole } from "../backend.d";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
 import {
   Tabs,
   TabsContent,
@@ -93,6 +102,42 @@ const emptyService: ServiceForm = {
   isFeatured: false,
 };
 
+function truncatePrincipal(p: string): string {
+  if (p.length <= 14) return p;
+  return `${p.slice(0, 8)}...${p.slice(-4)}`;
+}
+
+function formatJoinDate(ns: bigint): string {
+  const ms = Number(ns) / 1_000_000;
+  return new Date(ms).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function RoleBadge({ role }: { role: UserRole | string }) {
+  if (role === UserRole.admin || role === "admin") {
+    return (
+      <Badge className="bg-accent text-background text-xs font-semibold">
+        Admin
+      </Badge>
+    );
+  }
+  if (role === UserRole.user || role === "user") {
+    return (
+      <Badge className="bg-primary text-primary-foreground text-xs font-semibold">
+        User
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="text-xs">
+      Guest
+    </Badge>
+  );
+}
+
 export default function AdminPage() {
   const { identity } = useInternetIdentity();
   const { actor } = useActor();
@@ -126,6 +171,12 @@ export default function AdminPage() {
   const { data: inquiries = [] } = useQuery<ServiceInquiry[]>({
     queryKey: ["admin", "inquiries"],
     queryFn: () => actor?.getInquiries() ?? Promise.resolve([]),
+    enabled: !!actor && isAdmin,
+  });
+
+  const { data: users = [], isLoading: usersLoading } = useQuery<UserRecord[]>({
+    queryKey: ["admin", "users"],
+    queryFn: () => actor?.getUsers() ?? Promise.resolve([]),
     enabled: !!actor && isAdmin,
   });
 
@@ -294,7 +345,10 @@ export default function AdminPage() {
         <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
         <Tabs defaultValue="products">
-          <TabsList className="mb-6" data-ocid="admin.tabs">
+          <TabsList
+            className="mb-6 flex-wrap h-auto gap-1"
+            data-ocid="admin.tabs"
+          >
             <TabsTrigger value="products" data-ocid="admin.products.tab">
               Products ({products.length})
             </TabsTrigger>
@@ -306,6 +360,9 @@ export default function AdminPage() {
             </TabsTrigger>
             <TabsTrigger value="inquiries" data-ocid="admin.inquiries.tab">
               Inquiries ({inquiries.length})
+            </TabsTrigger>
+            <TabsTrigger value="users" data-ocid="admin.users.tab">
+              Users ({users.length})
             </TabsTrigger>
           </TabsList>
 
@@ -566,6 +623,88 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <div className="flex items-center gap-3 mb-6">
+              <Users className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-semibold">Registered Users</h2>
+            </div>
+
+            {usersLoading ? (
+              <div
+                className="text-center py-12 text-muted-foreground"
+                data-ocid="admin.users.loading_state"
+              >
+                Loading users...
+              </div>
+            ) : users.length === 0 ? (
+              <div
+                className="text-center py-16 text-muted-foreground"
+                data-ocid="admin.users.empty_state"
+              >
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">No users have signed up yet.</p>
+                <p className="text-sm mt-1 opacity-70">
+                  Users will appear here once they register on the webstore.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table data-ocid="admin.users.table">
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead className="font-semibold">#</TableHead>
+                      <TableHead className="font-semibold">Name</TableHead>
+                      <TableHead className="font-semibold">Role</TableHead>
+                      <TableHead className="font-semibold">
+                        Principal ID
+                      </TableHead>
+                      <TableHead className="font-semibold">Joined</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user, i) => {
+                      const principalStr = user.principal.toString();
+                      const displayName = user.profileName ?? "Anonymous";
+                      return (
+                        <TableRow
+                          key={principalStr}
+                          className="hover:bg-muted/20 transition-colors"
+                          data-ocid={`admin.user.item.${i + 1}`}
+                        >
+                          <TableCell className="text-muted-foreground text-sm">
+                            {i + 1}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                                {displayName.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-medium text-sm">
+                                {displayName}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <RoleBadge role={user.role} />
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                              {truncatePrincipal(principalStr)}
+                            </code>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {formatJoinDate(user.joinedAt)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

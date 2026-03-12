@@ -52,6 +52,12 @@ export type Status = { 'cancelled' : null } |
   { 'processing' : null };
 export type Time = bigint;
 export interface UserProfile { 'name' : string }
+export interface UserRecord {
+  'principal' : Principal,
+  'joinedAt' : Time,
+  'role' : UserRole,
+  'profileName' : [] | [string],
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -96,6 +102,7 @@ export interface _SERVICE {
   'getProducts' : ActorMethod<[[] | [string]], Array<Product>>,
   'getServices' : ActorMethod<[], Array<Service>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getUsers' : ActorMethod<[], Array<UserRecord>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'placeOrder' : ActorMethod<[], undefined>,
   'removeFromCart' : ActorMethod<[bigint], undefined>,

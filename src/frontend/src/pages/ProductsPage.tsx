@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   BookMarked,
   BookOpen,
@@ -10,8 +11,6 @@ import {
   PenTool,
   ShoppingCart,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import type { Product } from "../backend.d";
 import { Badge } from "../components/ui/badge";
@@ -44,19 +43,13 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 };
 
 export default function ProductsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [activeCategory, setActiveCategory] = useState<string>(
-    searchParams.get("category") || "All",
-  );
+  const search = useSearch({ from: "/products" });
+  const navigate = useNavigate({ from: "/products" });
+  const activeCategory = search.category || "All";
   const { actor } = useActor();
   const { identity } = useInternetIdentity();
   const queryClient = useQueryClient();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
-
-  useEffect(() => {
-    const cat = searchParams.get("category");
-    if (cat) setActiveCategory(cat);
-  }, [searchParams]);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["products", activeCategory],
@@ -79,11 +72,10 @@ export default function ProductsPage() {
   });
 
   const handleCategoryChange = (cat: string) => {
-    setActiveCategory(cat);
     if (cat === "All") {
-      setSearchParams({});
+      navigate({ search: {} });
     } else {
-      setSearchParams({ category: cat });
+      navigate({ search: { category: cat } });
     }
   };
 

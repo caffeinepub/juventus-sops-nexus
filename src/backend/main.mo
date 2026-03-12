@@ -1,21 +1,33 @@
-import List "mo:core/List";
 import Time "mo:core/Time";
-import Array "mo:core/Array";
-import Text "mo:core/Text";
 import Map "mo:core/Map";
-import Order "mo:core/Order";
-import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
-import Nat32 "mo:core/Nat32";
+import Array "mo:core/Array";
 import MixinStorage "blob-storage/Mixin";
 import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
+import Order "mo:core/Order";
+import List "mo:core/List";
+import Runtime "mo:core/Runtime";
+import Nat32 "mo:core/Nat32";
+import Text "mo:core/Text";
 import MixinAuthorization "authorization/MixinAuthorization";
 
 actor {
   include MixinStorage();
 
-  // Modules for custom types and comparison functions
+  module Item {
+    public func compare(a : CartItem, b : CartItem) : Order.Order {
+      switch (Text.compare(a.product.name, b.product.name)) {
+        case (#equal) {
+          Nat32.compare(a.quantity, b.quantity);
+        };
+        case (order) {
+          order;
+        };
+      };
+    };
+  };
+
   module Product {
     public func compare(a : Product, b : Product) : Order.Order {
       Text.compare(a.name, b.name);
@@ -37,20 +49,6 @@ actor {
     };
   };
 
-  module Item {
-    public func compare(a : CartItem, b : CartItem) : Order.Order {
-      switch (Text.compare(a.product.name, b.product.name)) {
-        case (#equal) {
-          Nat32.compare(a.quantity, b.quantity);
-        };
-        case (order) {
-          order;
-        };
-      };
-    };
-  };
-
-  // Types
   type Product = {
     id : Nat;
     name : Text;
@@ -99,19 +97,43 @@ actor {
     name : Text;
   };
 
-  // Stable storage
+  public type UserRecord = {
+    principal : Principal;
+    role : AccessControl.UserRole;
+    profileName : ?Text;
+    joinedAt : Time.Time;
+  };
+
   let products = Map.empty<Nat, Product>();
   let services = Map.empty<Nat, Service>();
   let carts = Map.empty<Principal, List.List<CartItem>>();
   let orders = Map.empty<Nat, OrderType>();
   let inquiries = Map.empty<Nat, ServiceInquiry>();
   let userProfiles = Map.empty<Principal, UserProfile>();
+  let userJoinedAt = Map.empty<Principal, Time.Time>();
 
-  // Authorization
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // User profile management
+  func ensureUserTracked(user : Principal) {
+    switch (userJoinedAt.get(user)) {
+      case (null) {
+        userJoinedAt.add(user, Time.now());
+      };
+      case (?_) {
+        // Already tracked
+      };
+    };
+  };
+
+  // Called by the frontend on every login to ensure the user is registered
+  public shared ({ caller }) func registerUser() : async () {
+    if (caller.isAnonymous()) {
+      Runtime.trap("Anonymous callers cannot register");
+    };
+    ensureUserTracked(caller);
+  };
+
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access profiles");
@@ -130,10 +152,10 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
+    ensureUserTracked(caller);
     userProfiles.add(caller, profile);
   };
 
-  // Product management
   public shared ({ caller }) func addProduct(product : Product) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
@@ -171,7 +193,6 @@ actor {
     filtered.toArray().sort();
   };
 
-  // Service management
   public shared ({ caller }) func addService(service : Service) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
@@ -200,11 +221,11 @@ actor {
     services.values().toArray().sort();
   };
 
-  // Cart management
   public shared ({ caller }) func addToCart(productId : Nat, quantity : Nat32) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can manage cart");
     };
+    ensureUserTracked(caller : Principal);
     let product = switch (products.get(productId)) {
       case (null) { Runtime.trap("Product not found") };
       case (?p) { p };
@@ -263,11 +284,11 @@ actor {
     cart.toArray().sort();
   };
 
-  // Order placement
   public shared ({ caller }) func placeOrder() : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can place orders");
     };
+    ensureUserTracked(caller);
     let cart = getCartInternal(caller);
     if (cart.size() == 0) { Runtime.trap("Cart is empty") };
 
@@ -293,10 +314,8 @@ actor {
 
   public query ({ caller }) func getOrders() : async [OrderType] {
     if (AccessControl.isAdmin(accessControlState, caller)) {
-      // Admin can see all orders
       orders.values().toArray();
     } else if (AccessControl.hasPermission(accessControlState, caller, #user)) {
-      // Users can only see their own orders
       let userOrders = orders.values().filter(
         func(order) { order.user == caller }
       );
@@ -321,11 +340,11 @@ actor {
     };
   };
 
-  // Service inquiries
   public shared ({ caller }) func submitInquiry(serviceId : Nat, message : Text, contactEmail : Text) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can submit inquiries");
     };
+    ensureUserTracked(caller);
     let dotN = inquiries.size();
     let id = dotN + 1;
     let newInquiry : ServiceInquiry = {
@@ -344,5 +363,59 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view inquiries");
     };
     inquiries.values().toArray();
+  };
+
+  public query ({ caller }) func getUsers() : async [UserRecord] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+
+    let allUsers = Map.empty<Principal, Bool>();
+
+    for ((user, _) in userProfiles.entries()) {
+      allUsers.add(user, true);
+    };
+
+    for ((_, order) in orders.entries()) {
+      allUsers.add(order.user, true);
+    };
+
+    for ((_, inquiry) in inquiries.entries()) {
+      allUsers.add(inquiry.user, true);
+    };
+
+    for ((user, _) in carts.entries()) {
+      allUsers.add(user, true);
+    };
+
+    for ((user, _) in userJoinedAt.entries()) {
+      allUsers.add(user, true);
+    };
+
+    let userRecords = Array.tabulate(
+      allUsers.size(),
+      func(i) {
+        let (user, _) = allUsers.entries().toArray()[i];
+        let role = AccessControl.getUserRole(accessControlState, user);
+        let profile = userProfiles.get(user);
+        let profileName = switch (profile) {
+          case (null) { null };
+          case (?p) { ?p.name };
+        };
+        let joinedAt = switch (userJoinedAt.get(user)) {
+          case (null) { Time.now() }; // Fallback for legacy users
+          case (?timestamp) { timestamp };
+        };
+
+        {
+          principal = user;
+          role;
+          profileName;
+          joinedAt;
+        };
+      }
+    );
+
+    userRecords;
   };
 };

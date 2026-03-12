@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   BookMarked,
   BookOpen,
@@ -25,7 +26,6 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import type { Product, Service } from "../backend.d";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -187,7 +187,9 @@ export default function HomePage() {
               className="bg-primary hover:bg-primary/80 shadow-lg shadow-primary/20"
               data-ocid="hero.explore_products.button"
             >
-              <Link to="/products">Explore Products</Link>
+              <Link to="/products" search={{}}>
+                Explore Products
+              </Link>
             </Button>
             <Button
               size="lg"
@@ -196,7 +198,9 @@ export default function HomePage() {
               className="border-accent text-accent hover:bg-accent hover:text-background"
               data-ocid="hero.explore_services.button"
             >
-              <Link to="/services">Explore Services</Link>
+              <Link to="/services" search={{}}>
+                Explore Services
+              </Link>
             </Button>
           </div>
         </div>
@@ -223,7 +227,8 @@ export default function HomePage() {
               {PRODUCT_CATEGORIES.map((cat) => (
                 <Link
                   key={cat.name}
-                  to={`/products?category=${encodeURIComponent(cat.name)}`}
+                  to="/products"
+                  search={{ category: cat.name }}
                   className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all"
                   data-ocid={`category.product.${cat.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.link`}
                 >
@@ -251,7 +256,8 @@ export default function HomePage() {
               {SERVICE_CATEGORIES.map((cat) => (
                 <Link
                   key={cat.name}
-                  to={`/services?category=${encodeURIComponent(cat.name)}`}
+                  to="/services"
+                  search={{ category: cat.name }}
                   className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:border-accent/50 hover:bg-accent/5 transition-all"
                   data-ocid={`category.service.${cat.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.link`}
                 >
@@ -381,7 +387,9 @@ export default function HomePage() {
             className="border-primary text-primary hover:bg-primary hover:text-white"
             data-ocid="featured_products.view_all.button"
           >
-            <Link to="/products">View All Products</Link>
+            <Link to="/products" search={{}}>
+              View All Products
+            </Link>
           </Button>
         </div>
       </section>
@@ -444,7 +452,9 @@ export default function HomePage() {
               className="bg-accent text-background hover:bg-accent/80"
               data-ocid="featured_services.book.button"
             >
-              <Link to="/services">Book a Service</Link>
+              <Link to="/services" search={{}}>
+                Book a Service
+              </Link>
             </Button>
           </div>
         </div>
@@ -488,7 +498,9 @@ export default function HomePage() {
               className="bg-primary hover:bg-primary/80"
               data-ocid="cta.start_shopping.button"
             >
-              <Link to="/products">Start Shopping</Link>
+              <Link to="/products" search={{}}>
+                Start Shopping
+              </Link>
             </Button>
             <Button
               size="lg"
@@ -497,7 +509,9 @@ export default function HomePage() {
               className="border-accent text-accent hover:bg-accent hover:text-background"
               data-ocid="cta.request_service.button"
             >
-              <Link to="/services">Request a Service</Link>
+              <Link to="/services" search={{}}>
+                Request a Service
+              </Link>
             </Button>
           </div>
         </div>

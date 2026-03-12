@@ -28,6 +28,14 @@ export function useActor() {
       const actor = await createActorWithConfig(actorOptions);
       const adminToken = getSecretParameter("caffeineAdminToken") || "";
       await actor._initializeAccessControlWithSecret(adminToken);
+
+      // Register the user on every login so they appear in the admin user list
+      try {
+        await actor.registerUser();
+      } catch {
+        // Silently ignore errors (e.g. anonymous caller edge cases)
+      }
+
       return actor;
     },
     // Only refetch when identity changes

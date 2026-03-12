@@ -1,4 +1,10 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
 import Navbar from "./components/Navbar";
 import { Toaster } from "./components/ui/sonner";
 import AdminPage from "./pages/AdminPage";
@@ -8,21 +14,75 @@ import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
 import ServicesPage from "./pages/ServicesPage";
 
+const rootRoute = createRootRoute({
+  component: () => (
+    <div className="min-h-screen bg-background text-foreground">
+      <Navbar />
+      <Outlet />
+      <Toaster />
+    </div>
+  ),
+});
+
+const homeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: HomePage,
+});
+
+const productsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/products",
+  validateSearch: (search: Record<string, unknown>): { category?: string } => ({
+    category: (search.category as string | undefined) ?? "",
+  }),
+  component: ProductsPage,
+});
+
+const servicesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/services",
+  validateSearch: (search: Record<string, unknown>): { category?: string } => ({
+    category: (search.category as string | undefined) ?? "",
+  }),
+  component: ServicesPage,
+});
+
+const cartRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/cart",
+  component: CartPage,
+});
+
+const ordersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders",
+  component: OrdersPage,
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: AdminPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  homeRoute,
+  productsRoute,
+  servicesRoute,
+  cartRoute,
+  ordersRoute,
+  adminRoute,
+]);
+
+const router = createRouter({ routeTree });
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
 export default function App() {
-  return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-background text-foreground">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-        </Routes>
-        <Toaster />
-      </div>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }

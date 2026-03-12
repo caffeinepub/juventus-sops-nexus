@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   Bot,
   Building2,
@@ -8,8 +9,7 @@ import {
   Store,
   TrendingUp,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { Service } from "../backend.d";
 import { Badge } from "../components/ui/badge";
@@ -48,21 +48,15 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 };
 
 export default function ServicesPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [activeCategory, setActiveCategory] = useState<string>(
-    searchParams.get("category") || "All",
-  );
+  const search = useSearch({ from: "/services" });
+  const navigate = useNavigate({ from: "/services" });
+  const activeCategory = search.category || "All";
   const [inquireService, setInquireService] = useState<Service | null>(null);
   const [message, setMessage] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const { actor } = useActor();
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
-
-  useEffect(() => {
-    const cat = searchParams.get("category");
-    if (cat) setActiveCategory(cat);
-  }, [searchParams]);
 
   const { data: services = [], isLoading } = useQuery<Service[]>({
     queryKey: ["services"],
@@ -107,10 +101,11 @@ export default function ServicesPage() {
               type="button"
               key={cat}
               onClick={() => {
-                setActiveCategory(cat);
-                cat === "All"
-                  ? setSearchParams({})
-                  : setSearchParams({ category: cat });
+                if (cat === "All") {
+                  navigate({ search: {} });
+                } else {
+                  navigate({ search: { category: cat } });
+                }
               }}
               className={`px-3 py-1.5 rounded-full text-sm transition-all ${
                 activeCategory === cat

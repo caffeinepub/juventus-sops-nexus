@@ -71,6 +71,12 @@ export const OrderType = IDL.Record({
   'totalAmount' : IDL.Nat,
   'items' : IDL.Vec(CartItem),
 });
+export const UserRecord = IDL.Record({
+  'principal' : IDL.Principal,
+  'joinedAt' : Time,
+  'role' : UserRole,
+  'profileName' : IDL.Opt(IDL.Text),
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -117,6 +123,7 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'getUsers' : IDL.Func([], [IDL.Vec(UserRecord)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'placeOrder' : IDL.Func([], [], []),
   'removeFromCart' : IDL.Func([IDL.Nat], [], []),
@@ -193,6 +200,12 @@ export const idlFactory = ({ IDL }) => {
     'totalAmount' : IDL.Nat,
     'items' : IDL.Vec(CartItem),
   });
+  const UserRecord = IDL.Record({
+    'principal' : IDL.Principal,
+    'joinedAt' : Time,
+    'role' : UserRole,
+    'profileName' : IDL.Opt(IDL.Text),
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -243,6 +256,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'getUsers' : IDL.Func([], [IDL.Vec(UserRecord)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'placeOrder' : IDL.Func([], [], []),
     'removeFromCart' : IDL.Func([IDL.Nat], [], []),

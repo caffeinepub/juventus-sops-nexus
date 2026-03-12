@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import type { CartItem } from "../backend.d";
 import { Button } from "../components/ui/button";
@@ -90,7 +90,7 @@ export default function CartPage() {
             <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-40" />
             <p className="text-muted-foreground mb-6">Your cart is empty.</p>
             <Button asChild variant="outline" data-ocid="cart.shop_now.button">
-              <Link to="/products">
+              <Link to="/products" search={{}}>
                 Browse Products <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { LogOut, Settings, ShoppingCart, User, Zap } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { Button } from "./ui/button";
@@ -63,6 +63,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/products"
+              search={{}}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               data-ocid="nav.products.link"
             >
@@ -70,6 +71,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/services"
+              search={{}}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               data-ocid="nav.services.link"
             >
@@ -93,7 +95,7 @@ export default function Navbar() {
                 variant="ghost"
                 size="sm"
                 className="relative"
-                onClick={() => navigate("/cart")}
+                onClick={() => navigate({ to: "/cart" })}
                 data-ocid="nav.cart.button"
               >
                 <ShoppingCart className="w-5 h-5" />
@@ -120,14 +122,14 @@ export default function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    onClick={() => navigate("/orders")}
+                    onClick={() => navigate({ to: "/orders" })}
                     data-ocid="nav.orders.link"
                   >
                     My Orders
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem
-                      onClick={() => navigate("/admin")}
+                      onClick={() => navigate({ to: "/admin" })}
                       data-ocid="nav.admin.dropdown.link"
                     >
                       <Settings className="w-4 h-4 mr-2" /> Admin Panel
@@ -181,6 +183,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/products"
+              search={{}}
               onClick={() => setMobileOpen(false)}
               className="px-2 py-1.5 text-sm hover:text-primary"
               data-ocid="nav.mobile.products.link"
@@ -189,6 +192,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/services"
+              search={{}}
               onClick={() => setMobileOpen(false)}
               className="px-2 py-1.5 text-sm hover:text-primary"
               data-ocid="nav.mobile.services.link"
