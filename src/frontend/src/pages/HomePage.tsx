@@ -17,18 +17,21 @@ import {
   Linkedin,
   Mail,
   MessageCircle,
+  Package,
   Palette,
   PenTool,
+  Quote,
+  Star,
   Store,
   Target,
   TrendingUp,
   Twitter,
-  Users,
   Zap,
 } from "lucide-react";
 import type { Product, Service } from "../backend.d";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 import { useActor } from "../hooks/useActor";
 
 const PRODUCT_CATEGORIES = [
@@ -98,13 +101,48 @@ const WHY_US = [
   },
 ];
 
+const STATS = [
+  { value: "1000+", label: "Products Available", icon: Package },
+  { value: "50+", label: "Digital Services", icon: Zap },
+  { value: "100%", label: "Digital Delivery", icon: CheckCircle },
+  { value: "Global", label: "Marketplace Reach", icon: Globe },
+];
+
+const TESTIMONIALS = [
+  {
+    quote:
+      "Absolutely brilliant service! My mini webstore was ready in 48 hours. The team understood exactly what I needed.",
+    name: "Amaka O.",
+    title: "Entrepreneur",
+    stars: 5,
+  },
+  {
+    quote:
+      "The AI Prompt Pack transformed my content workflow completely. I now produce 3x more content in half the time.",
+    name: "David L.",
+    title: "Content Creator",
+    stars: 5,
+  },
+  {
+    quote:
+      "Professional, fast, and reliable. Best investment for my business. Already recommended to 5 colleagues.",
+    name: "Sandra K.",
+    title: "Startup Founder",
+    stars: 5,
+  },
+];
+
 function ProductCard({ product }: { product: Product }) {
   return (
-    <Card className="card-glow transition-all border-border bg-card">
+    <Card className="card-glow transition-all border-border bg-card overflow-hidden">
+      <div className="h-1 w-full bg-gradient-to-r from-primary to-primary/40" />
       <CardContent className="p-5">
         <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center mb-3">
           <Brain className="w-5 h-5 text-primary" />
         </div>
+        <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full mb-2">
+          {product.category}
+        </span>
         <h3 className="font-semibold text-foreground mb-1">{product.name}</h3>
         <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
           {product.description}
@@ -119,11 +157,15 @@ function ProductCard({ product }: { product: Product }) {
 
 function ServiceCard({ service }: { service: Service }) {
   return (
-    <Card className="card-glow transition-all border-border bg-card">
+    <Card className="card-glow transition-all border-border bg-card overflow-hidden">
+      <div className="h-1 w-full bg-gradient-to-r from-accent to-accent/40" />
       <CardContent className="p-5">
         <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center mb-3">
           <Palette className="w-5 h-5 text-accent" />
         </div>
+        <span className="inline-block text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full mb-2">
+          {service.category}
+        </span>
         <h3 className="font-semibold text-foreground mb-1">{service.name}</h3>
         <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
           {service.description}
@@ -139,13 +181,17 @@ function ServiceCard({ service }: { service: Service }) {
 export default function HomePage() {
   const { actor } = useActor();
 
-  const { data: allProducts = [] } = useQuery<Product[]>({
+  const { data: allProducts = [], isLoading: productsLoading } = useQuery<
+    Product[]
+  >({
     queryKey: ["products", "all"],
     queryFn: () => actor?.getProducts(null) ?? Promise.resolve([]),
     enabled: !!actor,
   });
 
-  const { data: allServices = [] } = useQuery<Service[]>({
+  const { data: allServices = [], isLoading: servicesLoading } = useQuery<
+    Service[]
+  >({
     queryKey: ["services"],
     queryFn: () => actor?.getServices() ?? Promise.resolve([]),
     enabled: !!actor,
@@ -154,14 +200,85 @@ export default function HomePage() {
   const featuredProducts = allProducts.filter((p) => p.isFeatured).slice(0, 3);
   const featuredServices = allServices.filter((s) => s.isFeatured).slice(0, 3);
 
+  const defaultProducts: Product[] = [
+    {
+      id: 0n,
+      name: "Premium AI Prompt Packs",
+      description:
+        "Professionally crafted prompts for productivity and content creation.",
+      price: 2999n,
+      category: "AI Prompt Packs",
+      imageUrl: "",
+      isFeatured: true,
+      isAvailable: true,
+    },
+    {
+      id: 1n,
+      name: "Digital Business Guides",
+      description: "In-depth eBooks covering business strategy and technology.",
+      price: 1499n,
+      category: "eBooks & White Papers",
+      imageUrl: "",
+      isFeatured: true,
+      isAvailable: true,
+    },
+    {
+      id: 2n,
+      name: "Online Courses for Entrepreneurs",
+      description: "Practical courses to build digital and business skills.",
+      price: 4999n,
+      category: "Digital Courses",
+      imageUrl: "",
+      isFeatured: true,
+      isAvailable: true,
+    },
+  ];
+
+  const defaultServices: Service[] = [
+    {
+      id: 0n,
+      name: "Mini WebStore Creation",
+      description:
+        "Professional mini webstores to display and sell products digitally.",
+      priceLabel: "Starting from $150",
+      category: "Mini WebStore Creation",
+      imageUrl: "",
+      isFeatured: true,
+    },
+    {
+      id: 1n,
+      name: "Chatbot Development",
+      description: "Smart bots to automate customer support and interactions.",
+      priceLabel: "Starting from $200",
+      category: "Chatbot Development",
+      imageUrl: "",
+      isFeatured: true,
+    },
+    {
+      id: 2n,
+      name: "Branding & Web Design",
+      description:
+        "Creative visual designs and modern websites for your brand.",
+      priceLabel: "Starting from $100",
+      category: "Graphics & Web Design",
+      imageUrl: "",
+      isFeatured: true,
+    },
+  ];
+
   return (
-    <div className="">
+    <div>
       {/* Hero */}
       <section
-        className="hero-gradient relative min-h-[90vh] flex items-center justify-center text-center px-4"
+        className="hero-gradient relative min-h-[90vh] flex items-center justify-center text-center px-4 overflow-hidden"
         data-ocid="hero.section"
       >
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-16 left-8 w-72 h-72 rounded-full bg-primary/20 blur-3xl animate-float-orb pointer-events-none" />
+        <div
+          className="absolute bottom-16 right-8 w-80 h-80 rounded-full bg-accent/10 blur-3xl animate-float-orb pointer-events-none"
+          style={{ animationDelay: "3s" }}
+        />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
         </div>
@@ -206,6 +323,33 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Stats Bar */}
+      <section
+        className="py-10 px-4 bg-secondary/30 border-y border-border"
+        data-ocid="stats.section"
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {STATS.map((stat) => (
+              <div
+                key={stat.label}
+                className="glass-card rounded-xl p-5 flex items-center gap-4"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <stat.icon className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-extrabold text-accent">
+                    {stat.value}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Shop by Categories */}
       <section
         className="py-20 px-4 max-w-7xl mx-auto"
@@ -218,7 +362,6 @@ export default function HomePage() {
           Browse our full range of digital solutions
         </p>
         <div className="grid md:grid-cols-2 gap-12">
-          {/* Products */}
           <div>
             <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
               <BookOpen className="w-5 h-5" /> Digital Products
@@ -247,7 +390,6 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-          {/* Services */}
           <div>
             <h3 className="text-lg font-semibold text-accent mb-4 flex items-center gap-2">
               <Zap className="w-5 h-5" /> Digital Services
@@ -338,45 +480,18 @@ export default function HomePage() {
           Discover some of our most popular digital resources
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {featuredProducts.length > 0
-            ? featuredProducts.map((product) => (
-                <ProductCard key={String(product.id)} product={product} />
+          {productsLoading
+            ? [1, 2, 3].map((k) => (
+                <Skeleton
+                  key={k}
+                  className="h-52 rounded-xl"
+                  data-ocid="featured_products.loading_state"
+                />
               ))
-            : [
-                {
-                  id: 0n,
-                  name: "Premium AI Prompt Packs",
-                  description:
-                    "Professionally crafted prompts for productivity and content creation.",
-                  price: 2999n,
-                  category: "AI Prompt Packs",
-                  imageUrl: "",
-                  isFeatured: true,
-                  isAvailable: true,
-                },
-                {
-                  id: 1n,
-                  name: "Digital Business Guides",
-                  description:
-                    "In-depth eBooks covering business strategy and technology.",
-                  price: 1499n,
-                  category: "eBooks & White Papers",
-                  imageUrl: "",
-                  isFeatured: true,
-                  isAvailable: true,
-                },
-                {
-                  id: 2n,
-                  name: "Online Courses for Entrepreneurs",
-                  description:
-                    "Practical courses to build digital and business skills.",
-                  price: 4999n,
-                  category: "Digital Courses",
-                  imageUrl: "",
-                  isFeatured: true,
-                  isAvailable: true,
-                },
-              ].map((product) => (
+            : (featuredProducts.length > 0
+                ? featuredProducts
+                : defaultProducts
+              ).map((product) => (
                 <ProductCard key={String(product.id)} product={product} />
               ))}
         </div>
@@ -407,42 +522,18 @@ export default function HomePage() {
             Professional solutions for your digital needs
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {featuredServices.length > 0
-              ? featuredServices.map((service) => (
-                  <ServiceCard key={String(service.id)} service={service} />
+            {servicesLoading
+              ? [1, 2, 3].map((k) => (
+                  <Skeleton
+                    key={k}
+                    className="h-52 rounded-xl"
+                    data-ocid="featured_services.loading_state"
+                  />
                 ))
-              : [
-                  {
-                    id: 0n,
-                    name: "Mini WebStore Creation",
-                    description:
-                      "Professional mini webstores to display and sell products digitally.",
-                    priceLabel: "Starting from $150",
-                    category: "Mini WebStore Creation",
-                    imageUrl: "",
-                    isFeatured: true,
-                  },
-                  {
-                    id: 1n,
-                    name: "Chatbot Development",
-                    description:
-                      "Smart bots to automate customer support and interactions.",
-                    priceLabel: "Starting from $200",
-                    category: "Chatbot Development",
-                    imageUrl: "",
-                    isFeatured: true,
-                  },
-                  {
-                    id: 2n,
-                    name: "Branding & Web Design",
-                    description:
-                      "Creative visual designs and modern websites for your brand.",
-                    priceLabel: "Starting from $100",
-                    category: "Graphics & Web Design",
-                    imageUrl: "",
-                    isFeatured: true,
-                  },
-                ].map((service) => (
+              : (featuredServices.length > 0
+                  ? featuredServices
+                  : defaultServices
+                ).map((service) => (
                   <ServiceCard key={String(service.id)} service={service} />
                 ))}
           </div>
@@ -456,6 +547,46 @@ export default function HomePage() {
                 Book a Service
               </Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 px-4" data-ocid="testimonials.section">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-3">
+            What Our Customers Say
+          </h2>
+          <p className="text-center text-muted-foreground mb-12">
+            Real experiences from real people
+          </p>
+          <div className="grid sm:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t, i) => (
+              <div
+                key={t.name}
+                className="glass-card rounded-2xl p-6 flex flex-col gap-4"
+                data-ocid={`testimonials.item.${i + 1}`}
+              >
+                <Quote className="w-8 h-8 text-primary/50" />
+                <p className="text-sm text-muted-foreground leading-relaxed italic">
+                  "{t.quote}"
+                </p>
+                <div className="flex gap-0.5 mt-auto">
+                  {Array.from({ length: t.stars }, (_, si) => (
+                    <Star
+                      key={`star-${t.name}-${si}`}
+                      className="w-4 h-4 text-accent fill-accent"
+                    />
+                  ))}
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground text-sm">
+                    {t.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t.title}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -530,7 +661,7 @@ export default function HomePage() {
                   <Zap className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-bold text-lg glow-purple text-primary">
-                  Juventus Sops
+                  Juventus Sops Nexus
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -590,9 +721,19 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-          <div className="border-t border-border pt-6 text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Juventus Sops Nexus. All rights
-            reserved.
+          <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>
+              © {new Date().getFullYear()} Juventus Sops Nexus. All rights
+              reserved.
+            </span>
+            <a
+              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              Built with ❤️ using caffeine.ai
+            </a>
           </div>
         </div>
       </footer>

@@ -11,7 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { useActor } from "../hooks/useActor";
 
 export default function ServiceRequestPage() {
-  const search = useSearch({ from: "/service-request" });
+  const search = useSearch({ from: "/app/service-request" });
   const navigate = useNavigate();
   const { actor } = useActor();
 

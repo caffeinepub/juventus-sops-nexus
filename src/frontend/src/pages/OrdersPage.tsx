@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Package } from "lucide-react";
+import { ArrowRight, CheckCircle, Circle, Clock, Package } from "lucide-react";
 import type { OrderType } from "../backend.d";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -14,6 +15,74 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-green-500/20 text-green-400",
   cancelled: "bg-red-500/20 text-red-400",
 };
+
+const ORDER_STEPS = ["Pending", "Processing", "Completed"];
+
+function getStepIndex(status: string): number {
+  if (status === "completed") return 2;
+  if (status === "processing") return 1;
+  return 0;
+}
+
+function OrderStepper({ status }: { status: string }) {
+  const currentStep = getStepIndex(status);
+  if (status === "cancelled") {
+    return (
+      <div className="text-xs text-red-400 flex items-center gap-1.5 mt-3">
+        <Circle className="w-3 h-3" /> Order cancelled
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-0 mt-4" aria-label="Order progress">
+      {ORDER_STEPS.map((step, i) => {
+        const done = i < currentStep;
+        const active = i === currentStep;
+        return (
+          <div key={step} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                  done
+                    ? "bg-accent border-accent"
+                    : active
+                      ? "bg-primary border-primary"
+                      : "bg-transparent border-muted"
+                }`}
+              >
+                {done ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-accent-foreground" />
+                ) : active ? (
+                  <Clock className="w-3 h-3 text-white" />
+                ) : (
+                  <Circle className="w-3 h-3 text-muted-foreground" />
+                )}
+              </div>
+              <span
+                className={`text-xs mt-1 whitespace-nowrap ${
+                  done
+                    ? "text-accent"
+                    : active
+                      ? "text-primary font-medium"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {step}
+              </span>
+            </div>
+            {i < ORDER_STEPS.length - 1 && (
+              <div
+                className={`h-0.5 flex-1 mx-1 rounded transition-all ${
+                  done ? "bg-accent" : "bg-muted"
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function OrdersPage() {
   const { identity, login } = useInternetIdentity();
@@ -50,11 +119,10 @@ export default function OrdersPage() {
         <h1 className="text-3xl font-bold mb-8">My Orders</h1>
 
         {isLoading ? (
-          <div
-            className="text-center py-20 text-muted-foreground"
-            data-ocid="orders.loading_state"
-          >
-            Loading orders...
+          <div className="space-y-4" data-ocid="orders.loading_state">
+            {[1, 2, 3].map((k) => (
+              <Skeleton key={k} className="h-40 rounded-xl" />
+            ))}
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-20" data-ocid="orders.empty_state">
@@ -109,6 +177,7 @@ export default function OrdersPage() {
                       ${(Number(order.totalAmount) / 100).toFixed(2)}
                     </p>
                   </div>
+                  <OrderStepper status={order.status} />
                 </CardContent>
               </Card>
             ))}

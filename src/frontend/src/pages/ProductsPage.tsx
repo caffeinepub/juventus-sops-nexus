@@ -9,13 +9,16 @@ import {
   Image,
   Lightbulb,
   PenTool,
+  Search,
   ShoppingCart,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Product } from "../backend.d";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -43,13 +46,21 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 };
 
 export default function ProductsPage() {
-  const search = useSearch({ from: "/products" });
-  const navigate = useNavigate({ from: "/products" });
-  const activeCategory = search.category || "All";
+  const search = useSearch({ from: "/app/products" });
+  const navigate = useNavigate();
+  const activeCategory = (search as { category?: string }).category || "All";
   const { actor } = useActor();
   const { identity } = useInternetIdentity();
   const queryClient = useQueryClient();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["products", activeCategory],
@@ -72,22 +83,44 @@ export default function ProductsPage() {
   });
 
   const handleCategoryChange = (cat: string) => {
+    setSearchInput("");
     if (cat === "All") {
-      navigate({ search: {} });
+      navigate({ to: "/products", search: {} });
     } else {
-      navigate({ search: { category: cat } });
+      navigate({ to: "/products", search: { category: cat } });
     }
   };
 
-  const visibleProducts = products.filter((p) => p.isAvailable);
+  const visibleProducts = products
+    .filter((p) => p.isAvailable)
+    .filter((p) => {
+      if (!debouncedSearch) return true;
+      const q = debouncedSearch.toLowerCase();
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q)
+      );
+    });
 
   return (
     <div className="min-h-screen py-10 px-4">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">Digital Products</h1>
-        <p className="text-muted-foreground mb-8">
+        <p className="text-muted-foreground mb-6">
           Browse our collection of digital resources and tools
         </p>
+
+        {/* Search */}
+        <div className="relative mb-6 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search products..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-9"
+            data-ocid="products.search_input"
+          />
+        </div>
 
         {/* Category Tabs */}
         <div
@@ -117,7 +150,7 @@ export default function ProductsPage() {
             className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             data-ocid="products.loading_state"
           >
-            {["a", "b", "c", "d", "e", "f", "g", "h"].map((k) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((k) => (
               <Skeleton key={k} className="h-52 rounded-xl" />
             ))}
           </div>
@@ -127,7 +160,12 @@ export default function ProductsPage() {
             data-ocid="products.empty_state"
           >
             <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p>No products in this category yet.</p>
+            <p className="font-medium mb-1">No products found</p>
+            <p className="text-sm">
+              {debouncedSearch
+                ? `No results for "${debouncedSearch}"`
+                : "No products in this category yet."}
+            </p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -136,9 +174,10 @@ export default function ProductsPage() {
               return (
                 <Card
                   key={String(product.id)}
-                  className="card-glow border-border bg-card flex flex-col"
+                  className="card-glow border-border bg-card flex flex-col overflow-hidden"
                   data-ocid={`products.item.${i + 1}`}
                 >
+                  <div className="h-1 w-full bg-gradient-to-r from-primary to-primary/40" />
                   <CardContent className="p-5 flex-1">
                     <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center mb-3">
                       <Icon className="w-5 h-5 text-primary" />

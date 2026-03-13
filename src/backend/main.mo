@@ -53,7 +53,7 @@ actor {
     id : Nat;
     name : Text;
     description : Text;
-    price : Nat; // In cents (USD)
+    price : Nat;
     category : Text;
     imageUrl : Text;
     isFeatured : Bool;
@@ -122,23 +122,96 @@ actor {
     joinedAt : Time.Time;
   };
 
-  // All maps are stable so data persists across upgrades
-  stable let products = Map.empty<Nat, Product>();
-  stable let services = Map.empty<Nat, Service>();
-  stable let carts = Map.empty<Principal, List.List<CartItem>>();
-  stable let orders = Map.empty<Nat, OrderType>();
-  stable let inquiries = Map.empty<Nat, ServiceInquiry>();
-  stable let userProfiles = Map.empty<Principal, UserProfile>();
-  stable let userJoinedAt = Map.empty<Principal, Time.Time>();
-  stable let paymentMethods = Map.empty<Nat, PaymentMethod>();
-  stable let paymentConfirmations = Map.empty<Nat, PaymentConfirmation>();
+  // Stable storage arrays — survive upgrades
+  stable var stableProducts : [(Nat, Product)] = [];
+  stable var stableServices : [(Nat, Service)] = [];
+  stable var stableCarts : [(Principal, [CartItem])] = [];
+  stable var stableOrders : [(Nat, OrderType)] = [];
+  stable var stableInquiries : [(Nat, ServiceInquiry)] = [];
+  stable var stableUserProfiles : [(Principal, UserProfile)] = [];
+  stable var stableUserJoinedAt : [(Principal, Time.Time)] = [];
+  stable var stablePaymentMethods : [(Nat, PaymentMethod)] = [];
+  stable var stablePaymentConfirmations : [(Nat, PaymentConfirmation)] = [];
 
+  // Stable counters
   stable var nextProductId : Nat = 1;
   stable var nextServiceId : Nat = 1;
   stable var nextOrderId : Nat = 1;
   stable var nextInquiryId : Nat = 1;
   stable var nextPaymentMethodId : Nat = 1;
   stable var nextPaymentConfirmationId : Nat = 1;
+
+  // Runtime (non-stable) maps — rebuilt from stable arrays on startup/upgrade
+  var products = Map.empty<Nat, Product>();
+  var services = Map.empty<Nat, Service>();
+  var carts = Map.empty<Principal, List.List<CartItem>>();
+  var orders = Map.empty<Nat, OrderType>();
+  var inquiries = Map.empty<Nat, ServiceInquiry>();
+  var userProfiles = Map.empty<Principal, UserProfile>();
+  var userJoinedAt = Map.empty<Principal, Time.Time>();
+  var paymentMethods = Map.empty<Nat, PaymentMethod>();
+  var paymentConfirmations = Map.empty<Nat, PaymentConfirmation>();
+
+  // Restore runtime maps from stable arrays
+  func restoreFromStable() {
+    products := Map.empty<Nat, Product>();
+    for ((k, v) in stableProducts.vals()) { products.add(k, v) };
+
+    services := Map.empty<Nat, Service>();
+    for ((k, v) in stableServices.vals()) { services.add(k, v) };
+
+    carts := Map.empty<Principal, List.List<CartItem>>();
+    for ((k, items) in stableCarts.vals()) {
+      var lst = List.empty<CartItem>();
+      for (item in items.vals()) { lst.add(item) };
+      carts.add(k, lst);
+    };
+
+    orders := Map.empty<Nat, OrderType>();
+    for ((k, v) in stableOrders.vals()) { orders.add(k, v) };
+
+    inquiries := Map.empty<Nat, ServiceInquiry>();
+    for ((k, v) in stableInquiries.vals()) { inquiries.add(k, v) };
+
+    userProfiles := Map.empty<Principal, UserProfile>();
+    for ((k, v) in stableUserProfiles.vals()) { userProfiles.add(k, v) };
+
+    userJoinedAt := Map.empty<Principal, Time.Time>();
+    for ((k, v) in stableUserJoinedAt.vals()) { userJoinedAt.add(k, v) };
+
+    paymentMethods := Map.empty<Nat, PaymentMethod>();
+    for ((k, v) in stablePaymentMethods.vals()) { paymentMethods.add(k, v) };
+
+    paymentConfirmations := Map.empty<Nat, PaymentConfirmation>();
+    for ((k, v) in stablePaymentConfirmations.vals()) { paymentConfirmations.add(k, v) };
+  };
+
+  // Run restore on initial deployment
+  restoreFromStable();
+
+  // Save runtime maps to stable arrays before upgrade
+  system func preupgrade() {
+    stableProducts := products.entries().toArray();
+    stableServices := services.entries().toArray();
+    stableCarts := Array.tabulate(
+      carts.size(),
+      func(i) {
+        let (k, v) = carts.entries().toArray()[i];
+        (k, v.toArray());
+      }
+    );
+    stableOrders := orders.entries().toArray();
+    stableInquiries := inquiries.entries().toArray();
+    stableUserProfiles := userProfiles.entries().toArray();
+    stableUserJoinedAt := userJoinedAt.entries().toArray();
+    stablePaymentMethods := paymentMethods.entries().toArray();
+    stablePaymentConfirmations := paymentConfirmations.entries().toArray();
+  };
+
+  // Rebuild runtime maps after upgrade
+  system func postupgrade() {
+    restoreFromStable();
+  };
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { LogOut, Settings, ShoppingCart, User, Zap } from "lucide-react";
 import { useState } from "react";
 import { useActor } from "../hooks/useActor";
@@ -11,6 +11,40 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+
+function NavLink({
+  to,
+  search,
+  children,
+  ocid,
+}: {
+  to: string;
+  search?: Record<string, string>;
+  children: React.ReactNode;
+  ocid: string;
+}) {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  return (
+    <Link
+      to={to}
+      search={search ?? {}}
+      className={`relative text-sm transition-colors pb-0.5 ${
+        isActive
+          ? "text-foreground font-medium"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+      data-ocid={ocid}
+    >
+      {children}
+      <span
+        className={`absolute bottom-0 left-0 h-0.5 rounded-full bg-primary transition-all duration-300 ${
+          isActive ? "w-full" : "w-0"
+        }`}
+      />
+    </Link>
+  );
+}
 
 export default function Navbar() {
   const { identity, login, clear, isLoggingIn } = useInternetIdentity();
@@ -47,44 +81,29 @@ export default function Navbar() {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-lg glow-purple text-primary hidden sm:block">
+            <span className="font-bold text-lg glow-purple text-primary hidden sm:block md:hidden">
               JS Nexus
+            </span>
+            <span className="font-bold text-lg glow-purple text-primary hidden md:block">
+              Juventus Sops Nexus
             </span>
           </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6">
-            <Link
-              to="/"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              data-ocid="nav.home.link"
-            >
+            <NavLink to="/" ocid="nav.home.link">
               Home
-            </Link>
-            <Link
-              to="/products"
-              search={{}}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              data-ocid="nav.products.link"
-            >
+            </NavLink>
+            <NavLink to="/products" search={{}} ocid="nav.products.link">
               Products
-            </Link>
-            <Link
-              to="/services"
-              search={{}}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              data-ocid="nav.services.link"
-            >
+            </NavLink>
+            <NavLink to="/services" search={{}} ocid="nav.services.link">
               Services
-            </Link>
+            </NavLink>
             {isAdmin && (
-              <Link
-                to="/admin"
-                className="text-sm text-accent hover:text-accent/80 transition-colors"
-                data-ocid="nav.admin.link"
-              >
+              <NavLink to="/admin" ocid="nav.admin.link">
                 Admin
-              </Link>
+              </NavLink>
             )}
           </div>
 
@@ -155,17 +174,20 @@ export default function Navbar() {
               </Button>
             )}
 
-            {/* Mobile menu toggle */}
+            {/* Mobile menu toggle - lines stacked vertically */}
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden"
+              className="md:hidden px-2"
               onClick={() => setMobileOpen(!mobileOpen)}
+              data-ocid="nav.mobile.menu.button"
             >
               <span className="sr-only">Menu</span>
-              <div className="w-5 h-0.5 bg-foreground mb-1" />
-              <div className="w-5 h-0.5 bg-foreground mb-1" />
-              <div className="w-5 h-0.5 bg-foreground" />
+              <div className="flex flex-col justify-center gap-1.5 w-5">
+                <span className="block w-5 h-0.5 bg-foreground rounded-full" />
+                <span className="block w-5 h-0.5 bg-foreground rounded-full" />
+                <span className="block w-5 h-0.5 bg-foreground rounded-full" />
+              </div>
             </Button>
           </div>
         </div>
